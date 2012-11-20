@@ -184,29 +184,15 @@ r = [0,1,2].toList().bind(
         function(x){
             return [0,1,2].toList().bind(
                 function(y) {
-                    return (x+y).toList(); //(x+y).toList();
+                    //return ({0:x, 1:y}).toList();
+                    //return ({x:x, y:y}).toList(); 
+                    return (x+y).toList();
                 }
             );
         });
 
 console.log('list test =', JSON.stringify(r.value()));
 
-/*
-r = (7).toContinuation().bind(
-    function(x){
-        console.log('x=', JSON.stringify(x));
-        return (5).toContinuation().bind(
-            function(y){
-                console.log('y=', JSON.stringify(y));
-                return (x+y);
-            });
-    });
-
-console.log('continuation test=', r.bind(function(val){
-    console.log('val =', JSON.stringify(val));
-    return val + 1;
-})));
-*/
 
 // Wrap in continuationMonad
 r = (7).toContinuation();
@@ -214,8 +200,9 @@ r = (7).toContinuation();
 v = r.value()(function(v){
     return v;
 });
-console.log('continuation (7)=', JSON.stringify(v));
+console.log('continuation test #1=', JSON.stringify(v));
 
+// This will "forget" the 7
 r = (7).toContinuation().bind(
     function(x){
         return (8).toContinuation();
@@ -224,4 +211,18 @@ r = (7).toContinuation().bind(
 v = r.value()(function(v){
     return v;
 });
-console.log('continuation (8)=', JSON.stringify(v));
+console.log('continuation test #2=', JSON.stringify(v));
+
+// This will calc 7+8
+r = (7).toContinuation().bind(
+    function(x){
+        return (8).toContinuation().bind(
+            function(y){
+                return (x+y).toContinuation();
+            }
+        );
+    });
+v = r.value()(function(v){
+    return v;
+});
+console.log('continuation test #3=', JSON.stringify(v));
