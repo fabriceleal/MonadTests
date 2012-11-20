@@ -27,7 +27,7 @@ var MaybeMonad = function() {
         } else {
             return MaybeMonad.Nothing;
         }
-        console.log('value()');
+        //console.log('value()');
         // Only hit if initing
         this.value = function(){
             // return undefined;
@@ -102,22 +102,15 @@ ListMonad.prototype.bind = function(arrowOfTreturnsListOfU){
 };
 
 ContinuationMonad.prototype.bind = function(arrowOfTreturnsContinuationOfUAnswer){
-    var k = arrowOfTreturnsContinuationOfUAnswer;
-    //var _this = this;
+    var k = arrowOfTreturnsContinuationOfUAnswer;    
     var f = this.value();
     var c_tores = function(c) {
-        //console.log('DBG bind: c must be a function');
-        //console.log(c.toString());
-                
-        //console.log('DBG bind: _f must be a function');
-        //console.log(_f.toString());
+        // c is a regular value
+        // f is a regular function
+        // k is a function that receives a regular value
+        //  and returns a continuation
         
-        return f(function(x){
-            //console.log('DBG bind: x can be anything');
-            //console.log(x);
-            
-            //console.log('DBG bind: k must be a function that returns a continuationmonad');
-            
+        return f(function(x){           
             return k(x).value();			
         })(c);
     };
@@ -126,31 +119,40 @@ ContinuationMonad.prototype.bind = function(arrowOfTreturnsContinuationOfUAnswer
 
 // *** Unit ***
 
+var _toMaybe = function(m){
+    return new MaybeMonad(m);
+};
 Object.prototype.toMaybe = function(){
-    return new MaybeMonad(this);
+    return _toMaybe(this);
 };
 
+
+var _toIdentity = function(i){
+    return new IdentityMonad(i);
+};
 Object.prototype.toIdentity = function(){
-    return new IdentityMonad(this);
+    return _toIdentity(this);
 };
 
+var _toList = function(l){
+    return new ListMonad(l);
+};
 Object.prototype.toList = function(){
-    return new ListMonad(this);
+    return _toList(this);
 };
 
-Object.prototype.toContinuation = function(){
-    var _this = this;
+var _toContinuation = function(cc){
     // Returns a continuation monad, that wraps a call 
-    // to a function that is called with this value
+    // to a function (c) that is called with this value
     return new ContinuationMonad(function(c){
-        //console.log('c should be a normal function');
-        //console.log('c = ', c);
-        
         if(c instanceof Function){        
-            return c(_this);
+            return c(cc);
         }
         throw new Error('c is not a function!!!');
     });
+};
+Object.prototype.toContinuation = function(){
+    return _toContinuation(this);
 };
 
 // **** Tests ****
@@ -162,6 +164,7 @@ r = (5).toIdentity().bind(
     }, function(x,y){
         return x+y
     });
+//--
 
 // This needs to be like this because r.value() 
 // will return an instance to a Number
@@ -177,6 +180,7 @@ r = (5).toMaybe().bind(
             return (x+y).toMaybe();
         });
     });
+//--
 
 console.log('maybe test =', JSON.stringify(r.value()));
 
@@ -190,12 +194,14 @@ r = [0,1,2].toList().bind(
                 }
             );
         });
+//--
 
 console.log('list test =', JSON.stringify(r.value()));
 
 
 // Wrap in continuationMonad
 r = (7).toContinuation();
+
 // This returns the value wrapped in a continuation, as-is
 v = r.value()(function(v){
     return v;
@@ -222,7 +228,44 @@ r = (7).toContinuation().bind(
             }
         );
     });
+//--
+
 v = r.value()(function(v){
     return v;
 });
 console.log('continuation test #3=', JSON.stringify(v));
+
+
+// ** Validations
+
+var test = function(_monad, _value, _binded, _unit){
+    this.monad  = new _monad(_value);
+    this.binded = _binded;
+    this.value  = _value;
+    this.unit = _unit;
+}
+var tests = [
+   new test(IdentityMonad, 1, function(x){ return x.toIdentity(); }, _toIdentity),
+   new test(MaybeMonad, 12, function(x){ return x.toMaybe(); }, _toMaybe),
+   new test(ListMonad, [1], function(x){ return x.toList(); }, _toList),
+   new test(ContinuationMonad, 32, function(x){ return x.toContinuation(); }, _toContinuation)
+];
+
+console.log();
+console.log('VERIFICATIONS:');
+for(var i = 0; i < tests.length; ++i) {
+    var t = tests[i];
+    
+    // TODO JSON.stringify doesnt output functions, so continuationmonad might appear to be invalid!
+    
+    console.log('Left identity: Bind(Unit(e), k) = k(e)');
+    console.log('  [', i, 'A] value from bind =', JSON.stringify( t.monad.bind(tests[i].binded).value() ));
+    console.log('  [', i, 'A] value from fun call =', JSON.stringify( t.binded(t.value).value() ));
+        
+    console.log('Right Identity: Bind(m, Unit) = m');
+    console.log('  [', i, 'B] value from bind =', JSON.stringify( t.monad.bind(t.unit).value() ));
+    console.log('  [', i, 'B] monad =', JSON.stringify( t.monad.value() ));
+        
+    // Associative: Bind(m, x => Bind(k(x), y => h(y)) = Bind(Bind(m, x => k(x)), y => h(y))
+    // TODO Decrypt above expression :P
+}
