@@ -103,16 +103,16 @@ ListMonad.prototype.bind = function(arrowOfTreturnsListOfU){
 
 ContinuationMonad.prototype.bind = function(arrowOfTreturnsContinuationOfUAnswer){
     var k = arrowOfTreturnsContinuationOfUAnswer;
-    var _this = this;
+    //var _this = this;
+    var f = this.value();
     var c_tores = function(c) {
         //console.log('DBG bind: c must be a function');
         //console.log(c.toString());
-        
-        var _f = _this.value();
+                
         //console.log('DBG bind: _f must be a function');
         //console.log(_f.toString());
         
-        return _f(function(x){
+        return f(function(x){
             //console.log('DBG bind: x can be anything');
             //console.log(x);
             
