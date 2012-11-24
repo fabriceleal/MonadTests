@@ -53,19 +53,73 @@ class Identity <T> {
    }
 }
 
+typedef Maybe<Tuple<T, string>> ParserFunc<T>(string a);
+
+class Parser<T> {
+	ParserFunc<T> value;
+
+	Parser(this.value);
+
+	Parser<U> bind(Parser<U> func(T a)) {
+		 ParserFunc<T> pp = this.value;
+		 return new Parser((string s) {
+		 	 var aMaybe = pp(s);
+			 //print("executed myself");
+			 if(aMaybe is Just<Tuple<T,string>>) {
+			    var aResult = aMaybe as Just<Tuple<T,string>>;
+				 var aValue = aResult.value.value1;
+				 var sString = aResult.value.value2;
+				 //print(func);
+				 var bParser = func(aValue);
+				 //print(aValue);
+				 //print(bParser);
+				 var r = bParser.value(sString);
+				 //print(r);
+				 return r;
+			 } else {
+			    return new Nothing(); //<Tuple<U, string>>();
+			 }
+		 });
+	}
+
+	/*
+		  ParserFunc.
+	*/
+	static Parser<T> retm(T value) {
+		 return new Parser(Find(value));
+	}
+
+   /*
+		  Dummy return. So I can return stuff from within the lambdas
+	*/
+	static Parser<T> ret(T value) {
+	    return new Parser((s){
+		 	  return new Just(value);
+		 });
+	}
+
+}
+
+
 class Tuple<A, B> {
    A value1;
    B value2;
    Tuple(this.value1, this.value2);
+
+	string toString(){
+		 var s1 = value1.toString();
+		 var s2 = value2.toString();
+	    return "('$s1', '$s2')";
+	}
 }
 
-Maybe<Tuple<string, string>> matchHello(string input) {
-    if(input.startsWith('Hello')) {
-	    return new Just(
-			   new Tuple('Hello',
-			   	   input.substring('Hello'.length)));
-	}
-   return new Nothing();
+Maybe<Tuple<string, string>> Find(string s) {
+   return (i) {
+	   if(i.startsWith(s)) {
+		   return new Just(new Tuple(s, i.substring(s.length)));
+		}
+	   return new Nothing();
+	};
 }
 
 Identity<num> add2(num x) {
@@ -75,6 +129,7 @@ Identity<num> add2(num x) {
 Identity<num> mult2(num x) {
    return new Identity(x * 2);
 }
+
 
 main() {
    // Tests
@@ -111,16 +166,19 @@ main() {
 		   });
 	   });
    };
+
    print(doSomeDivision(0));
    print(doSomeDivision(1));
 
-   var parsed = matchHello('Hello World!');
-	print(parsed.value.value1);
+	var p = Parser.retm('Hello').bind((hello) {
+		return Parser.retm('World').bind((world) {
+				 //print(hello);
+				 //print(world);
+				 return Parser.ret({'hello' : hello, 'world' : world});
+		});
+	});
 
-	parsed = matchHello('Goodbye');
-	print(parsed);
-
-	//print('Hello World!'.substring(2));
+	print(p.value('HelloWorld'));
 
    return 0;
 }
