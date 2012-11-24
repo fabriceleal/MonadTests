@@ -53,6 +53,21 @@ class Identity <T> {
    }
 }
 
+class Tuple<A, B> {
+   A value1;
+   B value2;
+   Tuple(this.value1, this.value2);
+}
+
+Maybe<Tuple<string, string>> matchHello(string input) {
+    if(input.startsWith('Hello')) {
+	    return new Just(
+			   new Tuple('Hello',
+			   	   input.substring('Hello'.length)));
+	}
+   return new Nothing();
+}
+
 Identity<num> add2(num x) {
    return new Identity(x + 2);
 }
@@ -99,7 +114,13 @@ main() {
    print(doSomeDivision(0));
    print(doSomeDivision(1));
 
-   
+   var parsed = matchHello('Hello World!');
+	print(parsed.value.value1);
+
+	parsed = matchHello('Goodbye');
+	print(parsed);
+
+	//print('Hello World!'.substring(2));
 
    return 0;
 }
