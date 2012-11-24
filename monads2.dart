@@ -9,18 +9,48 @@
     http://mikehadlow.blogspot.pt/2011/02/monads-in-c-8-video-of-my-ddd9-monad.html
 */
 
+abstract class Maybe<T> {
+   static Maybe<T> unit(T value) {
+      return new Just(value);
+   }
+
+   Maybe<U> bind(Maybe<U> func(T a));
+}
+
+class Nothing<T> extends Maybe<T> {
+   String toString() {
+      return "<Maybe:Nothing>";
+   }
+   
+   Maybe<U> bind(Maybe<U> func(T a)) {
+      return new Nothing();
+   }
+}
+
+class Just<T> extends Maybe<T> {
+   T value;
+   Just(this.value);
+   String toString() {
+      return this.value.toString();
+   }
+
+   Maybe<U> bind(Maybe<U> func(T a)) {
+      return func(this.value);
+   }
+}
+
 class Identity <T> {
-	  T value;
+   T value;
 
-	  Identity(this.value); 
+   Identity(this.value); 
 	  
-	  Identity<U> bind(Identity<U> func(T a)) {
-	  	  return func(this.value);
-	  }
+   Identity<U> bind(Identity<U> func(T a)) {
+      return func(this.value);
+   }
 
-	  static Identity<T> ret(T value) {
-	  		 return new Identity(value);
-	  }
+   static Identity<T> ret(T value) {
+      return new Identity(value);
+   }
 }
 
 Identity<num> add2(num x) {
@@ -51,6 +81,25 @@ main() {
 	  });
    });
    print(z.value);
+
+   // Safe division
+   var div = function (num numerator, num denominator) {
+   	   return denominator == 0 ? 
+	   		  new Nothing<num>() : 
+			  new Just<num>(numerator/denominator);
+   };
+
+   var doSomeDivision = function(num denominator) {
+   	   return div(12, denominator).bind(function(num x){
+	       return div(x, 2).bind(function(num b) {
+		       return Maybe.unit(b);
+		   });
+	   });
+   };
+   print(doSomeDivision(0));
+   print(doSomeDivision(1));
+
+   
 
    return 0;
 }
